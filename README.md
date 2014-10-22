@@ -1,3 +1,3 @@
 Windows用douban.fm命令行，依赖mplayer
 
-![screenshot](/path/to/img.jpg)
+![screenshot](https://raw.githubusercontent.com/xuyi/dbfm/master/screenshot/s.png)
