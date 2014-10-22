@@ -95,7 +95,7 @@ func (fm *Fm) Login() *FmAccount {
 	return account
 }
 
-func GetPlaylist(channel string) []Song {
+func (fm *Fm) GetPlaylist(channel string) {
 	req_url, _ := url.Parse("http://douban.fm/j/mine/playlist")
 	req_url.RawQuery = url.Values{
 		"channel": {channel},
@@ -114,9 +114,12 @@ func GetPlaylist(channel string) []Song {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	return songs.Songs
+	for _, s := range songs.Songs {
+		fm.PlayList <- s
+	}
 }
 
+// not use
 func (fm *Fm) ShuffleSongs(songs []Song) {
 	for i, _ := range rand.Perm(len(songs)) {
 		fm.PlayList <- songs[i]
@@ -157,12 +160,13 @@ type Fm struct {
 	Player   string
 	Email    string
 	Password string
+	PlayId   string
 	PlayList chan Song
 }
 
 func NewFm() *Fm {
 	fm := &Fm{}
-	fm.PlayList = make(chan Song)
+	fm.PlayList = make(chan Song, 1000)
 	return fm
 }
 
@@ -190,13 +194,19 @@ func (fm *Fm) MainLoop() {
 }
 
 func (fm *Fm) Play() {
+	if len(fm.PlayList) <= 1 {
+		go fm.GetPlaylist(fm.PlayId)
+	}
+
 	current_song := <-fm.PlayList
 
 	color.ChangeColor(color.Red, true, color.Black, false)
 	fmt.Print(`♥ `)
-	color.ChangeColor(color.Green, false, color.None, false)
+	color.ChangeColor(color.Green, false, color.Black, false)
 	fmt.Print(current_song.Title + " ")
 	color.ResetColor()
+
+	time.Sleep(time.Second * 1)
 
 	go func() {
 		cmd := exec.Command(fm.Player, current_song.Url)
