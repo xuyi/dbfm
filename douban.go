@@ -162,6 +162,7 @@ type Fm struct {
 	Password string
 	PlayId   string
 	PlayList chan Song
+	Playing bool
 }
 
 func NewFm() *Fm {
@@ -194,33 +195,47 @@ func (fm *Fm) MainLoop() {
 }
 
 func (fm *Fm) Play() {
-	if len(fm.PlayList) <= 1 {
-		go fm.GetPlaylist(fm.PlayId)
+	if fm.Playing == true {
+		return
 	}
 
-	current_song := <-fm.PlayList
+	fm.Playing = true
 
-	color.ChangeColor(color.Red, true, color.Black, false)
-	fmt.Print(`♥ `)
-	color.ChangeColor(color.Green, false, color.Black, false)
-	fmt.Print(current_song.Title + " ")
-	color.ResetColor()
+	go func(){
+		for {
+			if fm.Playing == false{
+				return
+			}
 
-	time.Sleep(time.Second * 1)
+			if len(fm.PlayList) <= 1 {
+				fm.GetPlaylist(fm.PlayId)
+			}
 
-	go func() {
-		cmd := exec.Command(fm.Player, current_song.Url)
-		cmd.Start()
-		cmd.Wait()
+			current_song := <-fm.PlayList
+
+			color.ChangeColor(color.Red, true, color.Black, false)
+			fmt.Print(`♥ `)
+			color.ChangeColor(color.Green, false, color.Black, false)
+			fmt.Print(current_song.Title + " ")
+			color.ResetColor()
+
+			time.Sleep(time.Second * 1)
+
+			cmd := exec.Command(fm.Player, current_song.Url)
+			cmd.Start()
+			cmd.Wait()
+		}
 	}()
 }
 
 func (fm *Fm) Next() {
-	fm.Stop()
-	fm.Play()
+	cmd := exec.Command("taskkill", "/F", "/IM", "mplayer.exe")
+	cmd.Run()
 }
 
 func (fm *Fm) Stop() {
+	fm.Playing = false
+
 	cmd := exec.Command("taskkill", "/F", "/IM", "mplayer.exe")
 	/*
 		err := cmd.Run()
